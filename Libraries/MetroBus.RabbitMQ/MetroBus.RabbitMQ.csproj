@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\MetroBus.Abstraction\MetroBus.Abstraction.csproj" />
+      <ProjectReference Include="..\MetroBus.Abstraction\MetroBus.Abstraction.csproj" />
+      <ProjectReference Include="..\MetroBus.Extensions\MetroBus.Extensions.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Polly" Version="7.2.1" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
+        <PackageReference Include="RabbitMQ.Client" Version="6.2.1" />
+    </ItemGroup>
+</Project>
