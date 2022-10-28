@@ -1,5 +1,4 @@
-using Application.Common.Models;
-using MetroBus.Abstraction.EventHandlers;
+using DataCaptureService.Options;
 using MetroBus.Abstraction.SubscriptionsManagers;
 using MetroBus.Abstraction.SubscriptionsManagers.Abstract;
 using MetroBus.RabbitMQ;
@@ -25,6 +24,18 @@ public static class ServiceCollectionExtensions
         });
         
         serviceCollection.AddSingleton<IEventBusSubscriptionsManager, InMemoryEventBusSubscriptionsManager>();
+        
+        return serviceCollection;
+    }
+
+    public static IServiceCollection AddApplicationSettings(this IServiceCollection serviceCollection,
+        Action<ApplicationOption> action)
+    {
+        var option = new ApplicationOption();
+        
+        action?.Invoke(option);
+
+        serviceCollection.AddSingleton(option);
         
         return serviceCollection;
     }

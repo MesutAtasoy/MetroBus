@@ -1,81 +1,47 @@
-using System.Text.Json;
-using System.Transactions;
 using Application.Common.Models;
 using MetroBus.Abstraction;
+using Microsoft.Extensions.Logging;
 
 namespace DataCaptureService.Services;
 
 public class DataCaptureEventService : IDataCaptureEventService
 {
     private readonly IEventBus _eventBus;
-    
-    public DataCaptureEventService(IEventBus eventBus)
+    private readonly ILogger<DataCaptureEventService> _logger;
+
+    public DataCaptureEventService(IEventBus eventBus, ILogger<DataCaptureEventService> logger)
     {
         _eventBus = eventBus;
+        _logger = logger;
     }
-    
-    public void SendMessage(FileModel model, string sessionId, string correlationId)
-    {   
-        var sendTasks = new List<Task>();
 
-        var models = new List<DataCaptureEvent>();
-        
-        var sequenceNo = 0;
+    public async Task SendMessageAsync(FileModel model, string sessionId, string correlationId)
+    {
+        var chunkSize = 1024 * 1024;
+        int countOfArray = model.Body.Length / chunkSize;
 
-        using (var scope = new TransactionScope())
+        if (model.Body.Length % chunkSize > 0)
+            countOfArray++;
+
+        for (int i = 0; i < countOfArray; i++)
         {
-            var chunkSize =  1024 * 1024;
+            var body = model.Body.Skip(i * chunkSize).Take(chunkSize).ToArray();
 
-            var expectNo = (double)model.Body.Length / chunkSize;
-            var expectedNoMessages = (int)Math.Ceiling(expectNo);
-
-            var bytesToRead = (long) model.Body.Length;
-            var nextRead = chunkSize;
-            var lastChunk = false;
-
-            byte[] buffer = new byte[chunkSize];
-
-            while (bytesToRead > 0)
+            var serviceBusMessage = new DataCaptureEvent
             {
-                sequenceNo++;
+                SessionId = sessionId,
+                CorrelationId = correlationId,
+                Size = countOfArray,
+                MessageBody = body,
+                IsLast = i == countOfArray - 1,
+                Position = i + 1,
+                ChunkSize = chunkSize,
+                FileName = model.Name
+            };
+            _eventBus.Publish(serviceBusMessage);
 
-                if (bytesToRead < chunkSize)
-                    lastChunk = true;
-
-                if (lastChunk)
-                {
-                    buffer = new byte[bytesToRead];
-                    nextRead = (int)bytesToRead;
-                }
-
-                var serviceBusMessageBody = new MemoryStream();
-                serviceBusMessageBody.Write(buffer, 0, buffer.Length);
-                serviceBusMessageBody.Flush();
-                serviceBusMessageBody.Seek(0, SeekOrigin.Begin);
-                
-                var serviceBusMessage = new DataCaptureEvent
-                {
-                    SessionId = sessionId,
-                    CorrelationId = correlationId,
-                    Size = expectedNoMessages,
-                    MessageBody = serviceBusMessageBody.ToArray(),
-                    IsLast = lastChunk,
-                    Position = sequenceNo,
-                    ChunkSize = chunkSize,
-                    FileName = model.Name
-                };
-
-                // sendTasks.Add(Task.Run(()=> _eventBus.Publish(serviceBusMessage)));
-                _eventBus.Publish(serviceBusMessage);
-                
-                models.Add(serviceBusMessage);
-                bytesToRead = bytesToRead - nextRead;
-            }
-
-            // Task.WaitAll(sendTasks.ToArray());
-
-            
-            scope.Complete();
+            _logger.LogInformation(
+                $"Published the {serviceBusMessage.CorrelationId} - {@serviceBusMessage.FileName} -  Part {@serviceBusMessage.Position} of  {@serviceBusMessage.Size}");
         }
     }
 }

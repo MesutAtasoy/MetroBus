@@ -4,5 +4,5 @@ namespace DataCaptureService.Services;
 
 public interface IDataCaptureEventService
 {
-     void SendMessage(FileModel model, string sessionId, string correlationId);
+     Task SendMessageAsync(FileModel model, string sessionId, string correlationId);
 }

@@ -108,11 +108,6 @@ public class MetroBusRabbitMQ : IEventBus, IDisposable
         });
     }
 
-    public Task PublishAsync(IntegrationEvent @event)
-    {
-        throw new NotImplementedException();
-    }
-
     public void Subscribe<T, TH>()
         where T : IntegrationEvent
         where TH : IIntegrationEventHandler<T>
@@ -231,7 +226,7 @@ public class MetroBusRabbitMQ : IEventBus, IDisposable
         }
     }
 
-    public async Task ProcessEvent(string eventName, string message)
+    private async Task ProcessEvent(string eventName, string message)
     {
         if (_subsManager.HasSubscriptionsForEvent(eventName))
         {

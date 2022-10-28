@@ -1,53 +1,31 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-using Application.Common.Models;
-using Application.Common.Services;
+using Application.Common;
+using DataCaptureService.Listener;
 using DataCaptureService.ServiceExtensions;
 using DataCaptureService.Services;
 using MetroBus.Extensions;
+using MetroBus.FileProvider;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 var serviceProvider = new ServiceCollection()
-    .AddLogging()
+    .AddLogging(c => c.AddConsole(opt => opt.LogToStandardErrorThreshold = LogLevel.Debug))
     .AddEventBus()
+    .AddMetroBusFileProvider()
+    .AddApplicationSettings(x =>
+    {
+        x.FolderPath = Path.Combine(Directory.GetCurrentDirectory(), "temp"); // listening specific folder 
+        x.AllowedExtensions = new[] { ".pdf", ".jpg", ".epub" }; // allow just pdf format to transmission.
+    })
+    .AddSingleton<IListener, LocalFolderListener>()
     .AddScoped<IDataCaptureEventService, DataCaptureEventService>()
-    .AddSingleton<IFileService, FileService>()
     .BuildServiceProvider();
 
 DIResolver.SetProvider(serviceProvider);
 
-var service = serviceProvider.GetService<IDataCaptureEventService>();
-var fileService = serviceProvider.GetService<IFileService>();
+var listener = serviceProvider.GetService<IListener>();
 
-SendFiles();
-
-void SendFiles()
-{
-    var filePaths = GetFiles();
-
-    var files = new List<FileModel>();
-    
-    foreach (var filePath in filePaths)
-    {
-        var file = fileService?.ReadAllBytes(filePath);
-        
-        service?.SendMessage(new FileModel
-        {
-            Body = file,
-            Name = fileService.GetFileName(filePath),
-            Path = filePath
-        }, Guid.NewGuid().ToString(), Guid.NewGuid().ToString());
-    }
-
-}
-
-List<string> GetFiles()
-{
-    var path = Path.Combine(Directory.GetCurrentDirectory(), "temp");
-    var filePaths = Directory.GetFiles(path);
-
-    return filePaths.ToList();
-}
-
+await listener?.ListenAsync();
 
 Console.ReadLine();
