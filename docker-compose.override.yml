@@ -1,0 +1,19 @@
+version: "3"
+  
+services:
+   rabbitmq:
+    container_name: event-hub
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - metrobus
+
+networks:
+  metrobus:
+    external: true                        
+        
+        
+      
+
+        
