@@ -6,7 +6,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\MetroBus.Abstraction\MetroBus.Abstraction.csproj" />
       <ProjectReference Include="..\MetroBus.Abstraction\MetroBus.Abstraction.csproj" />
       <ProjectReference Include="..\MetroBus.Extensions\MetroBus.Extensions.csproj" />
     </ItemGroup>
